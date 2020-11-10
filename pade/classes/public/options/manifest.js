@@ -119,6 +119,13 @@ this.manifest = {
         {
             "tab": i18n.get("Connection"),
             "group": i18n.get("Authentication"),
+            "name": "useGitea",
+            "type": "checkbox",
+            "label": i18n.get("Use Gitea authentication <b>(requires openfire gitea plugin)</b>")
+        },
+        {
+            "tab": i18n.get("Connection"),
+            "group": i18n.get("Authentication"),
             "name": "useSmartIdCard",
             "type": "checkbox",
             "label": i18n.get("Use E-Residency Smart ID")
@@ -157,35 +164,6 @@ this.manifest = {
             "name": "certificate",
             "type": "button",
             "text": i18n.get("Download")
-        },
-        {
-            "tab": i18n.get("Connection"),
-            "group": i18n.get("Identity"),
-            "name": "useUport",
-            "type": "checkbox",
-            "label": i18n.get("uPort - Open Identity System for the Decentralized Web")
-        },
-        {
-            "tab": i18n.get("Connection"),
-            "group": i18n.get("Identity"),
-            "name": "useIrma",
-            "type": "checkbox",
-            "label": i18n.get("IRMA - I Reveal My Attributes")
-        },
-        {
-            "tab": i18n.get("Connection"),
-            "group": i18n.get("Identity"),
-            "name": "uport",
-            "type": "button",
-            "text": i18n.get("QR Code")
-        },
-        {
-            "tab": i18n.get("Connection"),
-            "group": i18n.get("Identity"),
-            "name": "uportPermission",
-            "type": "text",
-            "label": i18n.get("permission"),
-            "text": i18n.get("uport_permission")
         },
         {
             "tab": i18n.get("Connection"),
@@ -901,6 +879,20 @@ this.manifest = {
         {
             "tab": i18n.get("Converse"),
             "group": i18n.get("General"),
+            "name": "enableVoiceChat",
+            "type": "checkbox",
+            "label": i18n.get("Enable Voice Chat (Ohun)")
+        },
+        {
+            "tab": i18n.get("Converse"),
+            "group": i18n.get("General"),
+            "name": "enableVoiceChatText",
+            "type": "checkbox",
+            "label": i18n.get("Enable Voice Chat to Text Transcription")
+        },
+        {
+            "tab": i18n.get("Converse"),
+            "group": i18n.get("General"),
             "name": "enableNotesTool",
             "type": "checkbox",
             "label": i18n.get("Enable Notes Tool")
@@ -1039,8 +1031,11 @@ this.manifest = {
             "type": "popupButton",
             "label": i18n.get("Persistent Store"),
             "options": [
+                {"text": "No Storage", "value": "none"},
+                {"text": "Browser Extension Local", "value": "BrowserLocal"},
                 {"text": "Local Storage", "value": "localStorage"},
-                {"text": "IndexedDB", "value": "IndexedDB"}
+                {"text": "IndexedDB", "value": "IndexedDB"},
+                {"text": "Browser Extension Sync", "value": "BrowserSync"}
             ]
         },
         {
@@ -1493,27 +1488,6 @@ this.manifest = {
             "type": "checkbox",
             "label": i18n.get("Auto Start Community")
         },
-        {
-            "tab": i18n.get("Applications"),
-            "group": i18n.get("Community"),
-            "name": "embedCommunityChat",
-            "type": "checkbox",
-            "label": i18n.get("Embed Converse for Community chat")
-        },
-        {
-            "tab": i18n.get("Applications"),
-            "group": i18n.get("Community"),
-            "name": "communitySidecar",
-            "type": "checkbox",
-            "label": i18n.get("Use a sidecar panel for Converse")
-        },
-        {
-            "tab": i18n.get("Applications"),
-            "group": i18n.get("Community"),
-            "name": "disableChatButton",
-            "type": "checkbox",
-            "label": i18n.get("Disable chat button for Converse")
-        },
 /*
         {
             "tab": i18n.get("Applications"),
@@ -1802,13 +1776,6 @@ this.manifest = {
             "type": "text",
             "label": i18n.get("Gmail"),
             "text": i18n.get("Enter list of email accounts"),
-        },
-        {                                       // irma
-            "tab": i18n.get("Applications"),
-            "group": i18n.get("IRMA"),
-            "name": "enableIrma",
-            "type": "checkbox",
-            "label": i18n.get("Enable IRMA (I reveal my attributes)")
         },
         {                                               // search
             "tab": i18n.get("Search"),

@@ -11,9 +11,26 @@ window.pade = {
 
 const channel = new BroadcastChannel('sw-notification');
 
-channel.addEventListener('message', event => {
-  console.log('Received', event.data);
-  openChatWindow("inverse/index.html");
+channel.addEventListener('message', event =>
+{
+    console.debug('Received sw-notification', event.data);
+
+    if (event.data.reply && event.data.reply != "")
+    {
+        var url =  "https://" + getSetting("server") + "/rest/api/restapi/v1/meet/message";
+        var options = {method: "POST", headers: {"authorization": "Basic " + btoa(getSetting("username") + ":" + getSetting("password")), "accept": "application/json"}, body: JSON.stringify(event.data) };
+
+        fetch(url, options).then(function(response)
+        {
+            console.debug("sw-notification response", response);
+
+        }).catch(function (err) {
+            console.error("sw-notification error", err);
+        });
+    }
+    else {
+        openChatWindow("inverse/index.html");
+    }
 });
 
 //pade.transferWiseUrl = "https://api.sandbox.transferwise.tech/v1";
@@ -207,32 +224,25 @@ window.addEventListener("load", function()
 
         if (pade.busy) return;  // no presence broadcast while I am busy
 
-        var pres = $pres(), show = null, status = null;
+        var show = null, status = null;
 
         if (idleState == "locked")
         {
             show = "xa";
-            pres.c("show").t(show).up();
-
             status = getSetting("idleLockedMessage");
-            if (status) pres.c("status").t(status);
         }
         else
 
         if (idleState == "idle")
         {
             show = "away";
-            pres.c("show").t(show).up();
-
             status = getSetting("idleMessage");
-            if (status) pres.c("status").t(status);
         }
         else
 
         if (idleState == "active")
         {
             status = getSetting("idleActiveMessage");
-            if (status) pres.c("status").t(status);
         }
 
         if (pade.chatWindow)
@@ -256,9 +266,6 @@ window.addEventListener("load", function()
         setTimeout(function()   // wait for 3 secs before starting apps for O/S to be active and ready
         {
             reopenConverse();
-
-            if (getSetting("enableCommunity", false) && getSetting("communityAutoStart", false))
-                openWebAppsWindow(getSetting("communityUrl", getSetting("server") + "/tiki"), "minimized", 1024, 800);
 
             if (getSetting("enableOffice365Business", false) && getSetting("of365AutoStart", false))
                 openOffice365Window(true, "minimized");
@@ -326,7 +333,7 @@ window.addEventListener("load", function()
         {
             if (getSetting("enableCommunity", false))
             {
-                openWebAppsWindow(getSetting("communityUrl", getSetting("server") + "/tiki"), null, 1024, 800);
+                openWebAppsWindow(getSetting("communityUrl", getSetting("server") + "/"), null, 1024, 800);
 
             } else {
                 openChatWindow("inverse/index.html");
@@ -1391,7 +1398,7 @@ function addCommunityMenu()
 
 function removeCommunityMenu()
 {
-    closeWebAppsWindow(getSetting("communityUrl"), getSetting("server") + "/tiki");
+    closeWebAppsWindow(getSetting("communityUrl"), getSetting("server") + "/");
     chrome.contextMenus.remove("pade_community");
 }
 
@@ -2024,8 +2031,14 @@ function enableRemoteControl()
 
 function reopenConverse()
 {
-    if (getSetting("converseAutoStart", false) && !pade.chatWindow)
-        openChatWindow("inverse/index.html", null, "minimized");
+    if (getSetting("enableCommunity", false))
+    {
+        if (getSetting("communityAutoStart", false))
+            openWebAppsWindow(getSetting("communityUrl", getSetting("server") + "/"), "minimized", 1024, 800);
+    } else {
+        if (getSetting("converseAutoStart", false) && !pade.chatWindow)
+            openChatWindow("inverse/index.html", null, "minimized");
+    }
 }
 
 function setupUserPayment()

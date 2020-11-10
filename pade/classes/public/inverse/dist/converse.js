@@ -27641,10 +27641,12 @@ var DriverSupport = {};
 var DefaultDrivers = {
     INDEXEDDB: asyncStorage,
     WEBSQL: webSQLStorage,
-    LOCALSTORAGE: localStorageWrapper
+    LOCALSTORAGE: localStorageWrapper,
+    webExtensionSyncStorage: webExtensionStorageDriver.sync,
+    webExtensionLocalStorage: webExtensionStorageDriver.local
 };
 
-var DefaultDriverOrder = [DefaultDrivers.INDEXEDDB._driver, DefaultDrivers.WEBSQL._driver, DefaultDrivers.LOCALSTORAGE._driver];
+var DefaultDriverOrder = [DefaultDrivers.INDEXEDDB._driver, DefaultDrivers.WEBSQL._driver, DefaultDrivers.LOCALSTORAGE._driver, DefaultDrivers.webExtensionLocalStorage._driver, DefaultDrivers.webExtensionSyncStorage._driver];
 
 var OptionalDriverMethods = ['dropInstance'];
 
@@ -51858,10 +51860,13 @@ class backbone_browserStorage_BrowserStorage {
                     options.success(data, options);
                 }
             } else {
+                options.success(null, options);
+/* BAO
                 errorMessage = errorMessage ? errorMessage : "Record Not Found";
                 if (options && options.error) {
                     options.error(errorMessage);
                 }
+*/
             }
         }
         localSync.__name__ = 'localSync';
@@ -53447,6 +53452,22 @@ const stanza_utils = {
 
   // BAO
 
+  getJSONAttribute(stanza) {
+    const json = sizzle_default()("json[xmlns=\"".concat(stanza_Strophe.NS.JSON, "\"]"), stanza).pop();
+
+    if (json) {
+      return {
+        'json_jid': json.getAttribute('jid'),
+        'json_type': json.getAttribute('type'),
+        'json_payload': JSON.parse(json.innerHTML)
+      };
+    }
+
+    return {};
+  },
+
+  // BAO
+
   getReactionAttributes(stanza) {
     const reaction = sizzle_default()("reactions[xmlns=\"".concat(stanza_Strophe.NS.REACTION, "\"]"), stanza).pop();
 
@@ -53565,7 +53586,7 @@ const stanza_utils = {
       'thread': Object(lodash["propertyOf"])(stanza.querySelector('thread'))('textContent'),
       'time': delay ? dayjs_min_default()(delay.getAttribute('stamp')).toISOString() : new Date().toISOString(),
       'type': stanza.getAttribute('type')   // BAO
-    }, attrs, stanza_utils.getSenderAttributes(stanza, chatbox, _converse), stanza_utils.getOutOfBandAttributes(stanza), stanza_utils.getReactionAttributes(stanza), stanza_utils.getMsgAttachAttributes(stanza), stanza_utils.getSpoilerAttributes(stanza), stanza_utils.getCorrectionAttributes(stanza, original_stanza));
+    }, attrs, stanza_utils.getSenderAttributes(stanza, chatbox, _converse), stanza_utils.getOutOfBandAttributes(stanza), stanza_utils.getReactionAttributes(stanza), stanza_utils.getJSONAttribute(stanza), stanza_utils.getMsgAttachAttributes(stanza), stanza_utils.getSpoilerAttributes(stanza), stanza_utils.getCorrectionAttributes(stanza, original_stanza));
     return attrs;
   }
 
@@ -53619,6 +53640,7 @@ converse_core_Strophe.addNamespace('NICK', 'http://jabber.org/protocol/nick');
 converse_core_Strophe.addNamespace('OMEMO', 'eu.siacs.conversations.axolotl');
 converse_core_Strophe.addNamespace('OUTOFBAND', 'jabber:x:oob');
 converse_core_Strophe.addNamespace('REACTION', 'urn:xmpp:reactions:0'); // BAO
+converse_core_Strophe.addNamespace('JSON', 'urn:xmpp:json:0'); // BAO
 converse_core_Strophe.addNamespace('PUBSUB', 'http://jabber.org/protocol/pubsub');
 converse_core_Strophe.addNamespace('REGISTER', 'jabber:iq:register');
 converse_core_Strophe.addNamespace('RETRACT', 'urn:xmpp:message-retract:0');
@@ -53914,6 +53936,17 @@ function initPersistentStorage() {
   if (converse_core_converse.persistent_store === 'localStorage') {
     config['description'] = 'localStorage instance';
     config['driver'] = [backbone_browserStorage.localForage.LOCALSTORAGE];
+
+// BAO
+  } else if (converse_core_converse.persistent_store === 'BrowserSync') {
+    config['description'] = 'chrome.storage.sync instance';
+    config['driver'] = [backbone_browserStorage.localForage.webExtensionSyncStorage];
+
+// BAO
+  } else if (converse_core_converse.persistent_store === 'BrowserLocal') {
+    config['description'] = 'chrome.storage.local instance';
+    config['driver'] = [backbone_browserStorage.localForage.webExtensionLocalStorage];
+
   } else if (converse_core_converse.persistent_store === 'IndexedDB') {
     config['description'] = 'indexedDB instance';
     config['driver'] = [backbone_browserStorage.localForage.INDEXEDDB];
@@ -56479,6 +56512,15 @@ converse_core.plugins.add('converse-chat', {
                 'xmlns': converse_chat_Strophe.NS.REACTION,
                 'id': message.get('reaction_id')
             }).c('reaction').t(message.get('reaction_emoji')).root();
+        }
+
+        if (message.get('json_payload'))       // BAO
+        {
+            stanza.c("json", {
+                'xmlns': converse_chat_Strophe.NS.JSON,
+                'jid': message.get('json_jid'),
+                'type': message.get('json_type')
+            }).t(message.get('json_payload')).root();
         }
 
         (message.get('references') || []).forEach(reference => {
@@ -60730,7 +60772,7 @@ converse_core.plugins.add('converse-muc', {
           }
         }
 
-        _converse.api.trigger('message', {
+        return _converse.api.trigger('message', {
           'stanza': original_stanza,
           'chatbox': this
         });
@@ -63945,9 +63987,10 @@ converse_core.plugins.add('converse-mam', {
 
           if (!supported) {
             headless_log.warn("Did not fetch MAM archive for ".concat(jid, " because it doesn't support ").concat(converse_mam_Strophe.NS.MAM));
-            return {
-              'messages': []
-            };
+            // BAO
+            //return {
+            //  'messages': []
+            //};
           }
 
           const queryid = converse_mam_u.getUniqueId();
@@ -76955,11 +76998,9 @@ converse_core.plugins.add('converse-muc-views', {
         }
 
         form.addEventListener('submit', this.inviteFormSubmitted.bind(this), false);
+        let list;   // BAO
 
-        const list = _converse.roster.map(i => ({
-          'label': i.getDisplayName(),
-          'value': i.get('jid')
-        }));
+        if (_converse.roster) list = _converse.roster.map(i => ({ 'label': i.getDisplayName(), 'value': i.get('jid')  }));
 
         const el = this.el.querySelector('.suggestion-box').parentElement;
 
